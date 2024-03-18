@@ -17,6 +17,7 @@ var books = [{
   id: 3,
   name: "Tieng viet 3"
 }]
+
 router.get('/', function (req, res, next) {
   let undeleted = books.filter(b => !b.isDeleted);
   res.send(undeleted);
