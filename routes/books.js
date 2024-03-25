@@ -48,6 +48,7 @@ router.get('/', async function (req, res, next) {
       }
     }
     var books = await bookModel.find(queries)
+      .populate({ path: "author", select: "name _id" }).lean()
       .skip((page - 1) * limit).limit(limit).sort(objSort).exec();
     res.send(books);
   } catch (error) {
