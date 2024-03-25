@@ -3,11 +3,11 @@ var express = require('express');
 var router = express.Router();
 var bookModel = require('../schemas/book')
 var responseHandle = require('../helpers/responseHandle')
-
-//limit = 3 page = 4
-//skip 
-// 1 2 3     4 5 6      7 8 9     10
-// skip = (page-1)*limit
+/*
+Sửa lại code của hàm get sao cho
+Ngoài các giá trị gồm limit, sort, page thì cacs giá trị khác sẽ được 
+tìm kiếm filter
+*/
 
 router.get('/', async function (req, res, next) {
   let limit = req.query.limit ? req.query.limit : 5;
@@ -24,7 +24,7 @@ router.get('/', async function (req, res, next) {
   }
   var books = await bookModel.find({
     isDeleted: false,
-    name: new RegExp(req.query.name,'i')
+    name: new RegExp(req.query.name.replace(",","|"),'i')
   }).skip((page - 1) * limit).limit(limit).sort(objSort).exec();
   res.send(books);
 });
