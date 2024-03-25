@@ -27,15 +27,6 @@ mongoose.connect('mongodb://localhost:27017/NodeJsS2').then(
   console.log(err);
 })
 
-mongoose.connection.on('connected', function () {
-
-})
-mongoose.connection.on('disconnected', function () {
-
-})
-mongoose.connection.on('disconnecting', function () {
-
-})
 
 
 

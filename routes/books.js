@@ -1,88 +1,78 @@
 const e = require('express');
 var express = require('express');
 var router = express.Router();
+var bookModel = require('../schemas/book')
+var responseHandle = require('../helpers/responseHandle')
 
-//localhost:3000/books -GET
-//localhost:3000/books/id - GET
-//localhost:3000/books - POST
-//localhost:3000/books/id - PUT
-//localhost:3000/books/id - DELETE
-var books = [{
-  id: 1,
-  name: "Tieng viet 1"
-}, {
-  id: 2,
-  name: "Tieng viet 2"
-}, {
-  id: 3,
-  name: "Tieng viet 3"
-}]
+//limit = 3 page = 4
+//skip 
+// 1 2 3     4 5 6      7 8 9     10
+// skip = (page-1)*limit
 
-router.get('/', function (req, res, next) {
-  let undeleted = books.filter(b => !b.isDeleted);
-  res.send(undeleted);
-});
-
-router.put('/restore/:id', function (req, res, next) {
-  var getbook = books.find(b => b.id == req.params.id);
-  if (getbook) {
-    getbook.isDeleted = undefined;
-    res.status(200).send(getbook)
-  } else {
-    res.status(404).send("ID khong ton tai");
-  }
-});
-
-function GenID(length) {
-  var source = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghiklmnopqrstuvwxyz0123456789";
-  var result = "";
-  for (let i = 0; i < length; i++) {
-    var rand = Math.floor(Math.random()* 61);
-    result += source[rand]
-  }
-  return result;
-}
-
-router.get('/:id', function (req, res, next) {
-  var getbook = books.filter(b => b.id == req.params.id);
-  if (getbook.length > 0) {
-    res.send(getbook[0])
-  } else {
-    res.status(404).send("ID khong ton tai")
-  }
-});
-router.post('/', function (req, res, next) {
-  // var getbook = books.find(b => b.id == req.body.id);
-  // if (getbook) {
-  //   res.status(404).send("ID da ton tai")
-  // } else {
-    var newBook = {
-      id: GenID(16),
-      body: req.body.name
+router.get('/', async function (req, res, next) {
+  let limit = req.query.limit ? req.query.limit : 5;
+  let page = req.query.page ? req.query.page : 1;
+  let objSort = {};
+  if (req.query.sort) {
+    if (req.query.sort.startsWith('-')) {
+      let field = req.query.sort.substring(1, req.query.sort.length);
+      objSort[field] = -1;
+    } else {
+      let field = req.query.sort;
+      objSort[field] = 1;
     }
-    books.push(newBook)
-    res.status(200).send(newBook)
-  // }
+  }
+  var books = await bookModel.find({
+    isDeleted: false,
+    name: new RegExp(req.query.name,'i')
+  }).skip((page - 1) * limit).limit(limit).sort(objSort).exec();
+  res.send(books);
 });
-router.put('/:id', function (req, res, next) {
-  var getbook = books.find(b => b.id == req.params.id);
-  if (getbook) {
-    getbook.name = req.body.name;
-    res.status(200).send(getbook)
-  } else {
-    res.status(404).send("ID khong ton tai");
+
+router.get('/:id', async function (req, res, next) {
+  try {
+    var book = await bookModel.find({ _id: req.params.id });
+    responseHandle.renderResponse(res, true, book);
+  } catch (error) {
+    responseHandle.renderResponse(res, false, error);
+  }
+});
+router.post('/', async function (req, res, next) {
+  try {
+    let newBook = new bookModel({
+      name: req.body.name,
+      year: req.body.year,
+      author: req.body.author,
+    })
+    await newBook.save();
+    responseHandle.renderResponse(res, true, newBook);
+  } catch (error) {
+    responseHandle.renderResponse(res, false, error);
+  }
+});
+router.put('/:id', async function (req, res, next) {
+  try {
+    var book = await bookModel.findByIdAndUpdate
+      (req.params.id, req.body, {
+        new: true
+      })
+    responseHandle.renderResponse(res, true, book);
+  } catch (error) {
+    responseHandle.renderResponse(res, false, error);
   }
 });
 
-router.delete('/:id', function (req, res, next) {
-  var getbook = books.find(b => b.id == req.params.id);
-  if (getbook) {
-    // let index = books.indexOf(getbook);
-    // books.splice(index,1)
-    getbook.isDeleted = true;
-    res.status(200).send(getbook)
-  } else {
-    res.status(404).send("ID khong ton tai");
+router.delete('/:id', async function (req, res, next) {
+  try {
+    var book = await bookModel.findByIdAndUpdate
+      (req.params.id, {
+        isDeleted: true
+      }, {
+        new: true
+      })
+    responseHandle.renderResponse(res, true, book);
+  } catch (error) {
+    responseHandle.renderResponse(res, false, error);
   }
 });
 module.exports = router;
